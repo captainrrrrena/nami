@@ -1,0 +1,56 @@
+library(foreign) 
+read_dt <- function(tnumber){ 
+  dtname = paste("maketable", tnumber, ".dta", sep="")   #Function to read files nothing in between, create a file name
+  dt <- read.dta(dtname)
+  return (dt) #after all I need the data and only the data
+}
+dt2 <- read_dt(2) #Read all the files
+dt4 <- read_dt(4)
+dt5 <- read_dt(5)
+dt6 <- read_dt(6)
+dt7 <- read_dt(7)
+dt8 <- read_dt(8)
+# Merge all the files
+dtmerge <- Reduce(function(...) merge(...,all=TRUE, By = "Shortnam"), list(dt2, dt4, dt5, dt6, dt7, dt8)) #Merge can only merge 2 functions, and reduce can put 2 and 3 together, then 2+3 and 4 togehter and etc.
+print(dtmerge)
+```
+
+
+
+
+```{r}
+logpgp95 = dtmerge[dtmerge$baseco==1, "logpgp95"]  #This variable represents "Log GDP per capita PPP"
+logem4 <- dtmerge[dtmerge$baseco==1, "logem4"]     #This variable represetns "Log of Settler Mortality"
+shortnam <- dtmerge[dtmerge$baseco==1, "shortnam"] #This variable represetns "Short name of country/colony"
+lm_q3 <- lm(logpgp95 ~ logem4)                     #Linear regression using 64 countries in the base case
+
+# Code to plot the points, lables and the regression line
+plot(logem4, logpgp95, main= "FIGURE1. REDUCED-FORM RELATIONSHIP BETWEEN
+     INCOME AND SETTLER MORTALITY", xlab= "Log of Settler Mortality", ylab= "Log GDP per capita, PPP, 1995", col= "blue", pch = 19, cex = 0.01, lty = "solid", lwd = 2)
+abline(lm_q3, col="blue")
+text(logem4, logpgp95, labels=shortnam, cex= 0.7)
+
+
+```{r}
+library(dplyr) #install library
+dtsum_data <- select(dtmerge, "logpgp95", "loghjypl", "avexpr", "cons00a", "cons1", "democ00a", "euro1900", "logem4")
+#dtsum_Var <- c("Log GDP per capita (PPP) in 1995")
+dtsum_world <- do.call(data.frame, 
+           list(mean = apply(dtsum_data, 2, mean, na.rm=TRUE),
+                sd = apply(dtsum_data, 2, sd, na.rm=TRUE),
+                n = apply(dtsum_data, 2, length)))
+dtsum_world <- round(dtsum_world, 1) #round to one decimal place
+print(dtsum_world) #Produce Summary Statistics for the world
+
+
+```{r}
+dtmerge_base <- dtmerge[dtmerge$baseco==1,]
+dtmerge_base <- dtmerge_base[!(rowSums(is.na(dtmerge_base))==NCOL(dtmerge_base)),] 
+dtsum_data_base <- dtmerge_base[dtmerge_base$baseco==1, c("logpgp95", "loghjypl", "avexpr", "cons00a", "cons1", "democ00a", "euro1900", "logem4")]
+dtsum_base <- do.call(data.frame, 
+           list(mean = apply(dtsum_data_base, 2, mean, na.rm=TRUE),
+                sd = apply(dtsum_data_base, 2, sd, na.rm=TRUE),
+                n = apply(dtsum_data_base, 2, length)))
+dtsum_base <- round(dtsum_base, 1)
+print(dtsum_base) #Produce Summary Statistics for the base
+```
